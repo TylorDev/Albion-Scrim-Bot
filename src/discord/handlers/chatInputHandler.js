@@ -67,6 +67,12 @@ function getFakeScrimPreset(interaction) {
 }
 
 export async function handleChatInputCommand(interaction) {
+  if (interaction.commandName === COMMANDS.secret) {
+    console.log("hola");
+    await interaction.reply("hola");
+    return;
+  }
+
   if (interaction.commandName === COMMANDS.scrim) {
     if (!(await assertSystem32(interaction))) {
       return;

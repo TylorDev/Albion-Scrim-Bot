@@ -7,6 +7,9 @@ import {
 
 export const commandDefinitions = [
   new SlashCommandBuilder()
+    .setName(COMMANDS.secret)
+    .setDescription("Devuelve un hola simple."),
+  new SlashCommandBuilder()
     .setName(COMMANDS.scrim)
     .setDescription("Muestra el panel de scrim con registro real.")
     .addStringOption((option) =>
