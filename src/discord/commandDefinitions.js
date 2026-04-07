@@ -7,6 +7,9 @@ import {
 
 export const commandDefinitions = [
   new SlashCommandBuilder()
+    .setName(COMMANDS.start)
+    .setDescription("Importa los jugadores desde backup.txt a la base de datos."),
+  new SlashCommandBuilder()
     .setName(COMMANDS.secret)
     .setDescription("Devuelve un hola simple."),
   new SlashCommandBuilder()

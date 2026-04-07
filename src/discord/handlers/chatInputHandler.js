@@ -1,4 +1,5 @@
 import { COMMANDS } from "../../constants/commands.js";
+import { importBackupPlayers } from "../../database/importBackupPlayers.js";
 import { seedFakePlayers } from "../../database/ensureSeedData.js";
 import {
   loadFakeScrim,
@@ -67,6 +68,20 @@ function getFakeScrimPreset(interaction) {
 }
 
 export async function handleChatInputCommand(interaction) {
+  if (interaction.commandName === COMMANDS.start) {
+    if (!(await assertSystem32(interaction))) {
+      return;
+    }
+
+    const result = await importBackupPlayers();
+
+    await interaction.reply({
+      content: `Backup importado. Total: ${result.total} | Nuevos: ${result.created} | Actualizados: ${result.updated}.`,
+      ephemeral: true
+    });
+    return;
+  }
+
   if (interaction.commandName === COMMANDS.secret) {
     console.log("hola");
     await interaction.reply("hola");
