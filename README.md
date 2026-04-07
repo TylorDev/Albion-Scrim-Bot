@@ -72,7 +72,4 @@ npm start
 - `src/services`: matchmaking, simulacion y MMR
 - `src/ui`: embeds y componentes del panel
 
-La base local vive en `prisma/dev.db`.
-# Albion-Scrim-Bot
-# Albion-Scrim-Bot
-# Albion-Scrim-Bot
+
