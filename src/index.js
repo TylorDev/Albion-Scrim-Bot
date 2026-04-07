@@ -7,7 +7,7 @@ import { handleChatInputCommand } from "./discord/handlers/chatInputHandler.js";
 
 const client = createClient();
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
   try {
     await initializeDatabase();
     await registerCommands();

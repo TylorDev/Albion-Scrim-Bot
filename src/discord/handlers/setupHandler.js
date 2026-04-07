@@ -24,12 +24,12 @@ function buildSettingsMessage(settings) {
   return [
     "**Configuracion actual**",
     `Comandos publicos: ${publicCommands}`,
-    `Roles con acceso a /${COMMANDS.arena}: ${formatMentionList(
+    `Roles con acceso a /${COMMANDS.scrim}: ${formatMentionList(
       settings.allowedArenaRoleIds,
       (id) => `<@&${id}>`,
       "Ninguno"
     )}`,
-    `Usuarios con acceso a /${COMMANDS.arena}: ${formatMentionList(
+    `Usuarios con acceso a /${COMMANDS.scrim}: ${formatMentionList(
       settings.allowedArenaUserIds,
       (id) => `<@${id}>`,
       "Ninguno"
@@ -77,7 +77,7 @@ export async function handleSetupCommand(interaction) {
       .join(" y ");
 
     await interaction.reply({
-      content: `${addedTargets} ahora puede usar /${COMMANDS.arena}.`,
+      content: `${addedTargets} ahora puede usar /${COMMANDS.scrim}.`,
       ephemeral: true
     });
     return;
@@ -107,7 +107,7 @@ export async function handleSetupCommand(interaction) {
   if (subcommand === "limpiar") {
     await clearArenaAccess();
     await interaction.reply({
-      content: `Se limpiaron los accesos exclusivos de /${COMMANDS.arena}.`,
+      content: `Se limpiaron los accesos exclusivos de /${COMMANDS.scrim}.`,
       ephemeral: true
     });
     return;

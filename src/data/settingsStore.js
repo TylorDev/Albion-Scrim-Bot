@@ -57,7 +57,7 @@ export async function isCommandPublic(commandName) {
 export async function canUseArena(interaction) {
   const settings = await getSettingsConfig();
 
-  if (settings.publicCommands.includes(COMMANDS.arena)) {
+  if (settings.publicCommands.includes(COMMANDS.scrim)) {
     return true;
   }
 

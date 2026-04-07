@@ -6,10 +6,11 @@ export const DEFAULT_SETTINGS = {
   allowedArenaRoleIds: [],
   allowedArenaUserIds: [],
   publicCommands: [
-    COMMANDS.registrados,
+    COMMANDS.secret,
+    COMMANDS.scrim,
+    COMMANDS.scrimfake,
+    COMMANDS.pelea,
     COMMANDS.ranking,
-    COMMANDS.simular,
-    COMMANDS.iniciarSimulacion,
     COMMANDS.setup
   ]
 };
@@ -48,12 +49,10 @@ function normalizeSettings(settings = {}) {
   return {
     allowedArenaRoleIds: normalizeStringList(settings.allowedArenaRoleIds),
     allowedArenaUserIds: normalizeStringList(settings.allowedArenaUserIds),
-    publicCommands: Array.from(
-      new Set([
-        ...DEFAULT_SETTINGS.publicCommands,
-        ...normalizeStringList(settings.publicCommands)
-      ])
-    )
+    publicCommands: normalizeStringList([
+      ...DEFAULT_SETTINGS.publicCommands,
+      ...normalizeStringList(settings.publicCommands)
+    ])
   };
 }
 
