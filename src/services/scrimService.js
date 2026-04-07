@@ -41,7 +41,7 @@ function mapDraftToMatchup(draft) {
 export async function createScrimFight(guild = null) {
   const players = await getArenaPlayers();
   const playersWithRoles = await enrichPlayersWithRoles(players, guild);
-  const matchup = buildScrimTeams(playersWithRoles, getScrimSettings());
+  const matchup = buildScrimTeams(playersWithRoles, await getScrimSettings());
   const draft = await replacePendingDraft(DraftMode.ARENA, matchup);
   return mapDraftToMatchup(draft);
 }
@@ -55,8 +55,8 @@ export async function resolveScrimFight(draftId, winner, guild = null) {
 
   const matchup = mapDraftToMatchup(draft);
   const changes = await applyMatchResult(matchup, winner);
-  const manualHealerUserIds = getManualHealerUserIds();
-  const manualTankUserIds = getManualTankUserIds();
+  const manualHealerUserIds = await getManualHealerUserIds();
+  const manualTankUserIds = await getManualTankUserIds();
 
   if (guild && manualHealerUserIds.length > 0) {
     await removeHealerAuxRoleFromUserIds(guild, manualHealerUserIds);

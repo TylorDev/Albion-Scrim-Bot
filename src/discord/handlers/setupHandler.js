@@ -65,11 +65,11 @@ export async function handleSetupCommand(interaction) {
     }
 
     if (role) {
-      addArenaRole(role.id);
+      await addArenaRole(role.id);
     }
 
     if (user) {
-      addArenaUser(user.id);
+      await addArenaUser(user.id);
     }
 
     const addedTargets = [role ? `${role}` : null, user ? `${user}` : null]
@@ -95,7 +95,7 @@ export async function handleSetupCommand(interaction) {
       return;
     }
 
-    setCommandPublic(commandName, state);
+    await setCommandPublic(commandName, state);
 
     await interaction.reply({
       content: `/${commandName} ahora es ${state ? "publico" : "privado"}.`,
@@ -105,7 +105,7 @@ export async function handleSetupCommand(interaction) {
   }
 
   if (subcommand === "limpiar") {
-    clearArenaAccess();
+    await clearArenaAccess();
     await interaction.reply({
       content: `Se limpiaron los accesos exclusivos de /${COMMANDS.arena}.`,
       ephemeral: true
@@ -115,7 +115,7 @@ export async function handleSetupCommand(interaction) {
 
   if (subcommand === "ver") {
     await interaction.reply({
-      content: buildSettingsMessage(getSettings()),
+      content: buildSettingsMessage(await getSettings()),
       ephemeral: true
     });
   }

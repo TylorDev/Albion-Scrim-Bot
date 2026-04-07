@@ -100,7 +100,7 @@ async function enableAuxButtonsFromError(errorMessage, interaction) {
     return;
   }
 
-  setScrimSettings(nextSettings);
+  await setScrimSettings(nextSettings);
 
   if (interaction.message?.editable) {
     const panelMode = getPanelModeFromMessage(interaction);
@@ -117,7 +117,7 @@ export async function handleButtonInteraction(interaction) {
     const result = await registerArenaMember(member, panelMode);
 
     if (result.status === "full") {
-      const { maxPlayers } = getScrimSettings();
+      const { maxPlayers } = await getScrimSettings();
       await interaction.reply({
         content: `La scrim ya llego al maximo de ${maxPlayers} jugadores.`,
         ephemeral: true
@@ -144,7 +144,7 @@ export async function handleButtonInteraction(interaction) {
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const panelMode = getPanelModeFromMessage(interaction);
 
-    if (isManualHealerUser(member.id)) {
+    if (await isManualHealerUser(member.id)) {
       await removeHealerAuxRoleFromMember(member).catch(() => null);
       await toggleSelfHealerRegistration(member, panelMode);
       await interaction.deferUpdate();
@@ -175,7 +175,7 @@ export async function handleButtonInteraction(interaction) {
 
     if (result.status === "full") {
       await removeHealerAuxRoleFromMember(member).catch(() => null);
-      const { maxPlayers } = getScrimSettings();
+      const { maxPlayers } = await getScrimSettings();
       await interaction.reply({
         content: `La scrim ya llego al maximo de ${maxPlayers} jugadores.`,
         ephemeral: true
@@ -192,7 +192,7 @@ export async function handleButtonInteraction(interaction) {
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const panelMode = getPanelModeFromMessage(interaction);
 
-    if (isManualTankUser(member.id)) {
+    if (await isManualTankUser(member.id)) {
       await removeTankAuxRoleFromMember(member).catch(() => null);
       await toggleSelfTankRegistration(member, panelMode);
       await interaction.deferUpdate();
@@ -223,7 +223,7 @@ export async function handleButtonInteraction(interaction) {
 
     if (result.status === "full") {
       await removeTankAuxRoleFromMember(member).catch(() => null);
-      const { maxPlayers } = getScrimSettings();
+      const { maxPlayers } = await getScrimSettings();
       await interaction.reply({
         content: `La scrim ya llego al maximo de ${maxPlayers} jugadores.`,
         ephemeral: true
@@ -274,8 +274,8 @@ export async function handleButtonInteraction(interaction) {
 
     const panelMode = getPanelModeFromMessage(interaction);
     await interaction.deferReply({ ephemeral: true });
-    const manualHealerUserIds = getManualHealerUserIds();
-    const manualTankUserIds = getManualTankUserIds();
+    const manualHealerUserIds = await getManualHealerUserIds();
+    const manualTankUserIds = await getManualTankUserIds();
 
     try {
       await removeHealerAuxRoleFromUserIds(interaction.guild, manualHealerUserIds);

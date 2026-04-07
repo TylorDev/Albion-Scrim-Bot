@@ -13,6 +13,7 @@ function requireEnv(name) {
 export const env = {
   token: requireEnv("DISCORD_TOKEN"),
   clientId: requireEnv("CLIENT_ID"),
+  databaseUrl: requireEnv("DATABASE_URL"),
   guildIds: (process.env.GUILD_IDS || process.env.GUILD_ID || "")
     .split(",")
     .map((guildId) => guildId.trim())

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -20,6 +20,25 @@ enum DraftStatus {
 enum TeamSide {
   A
   B
+}
+
+enum ScrimFormat {
+  STANDARD
+  META
+  LIBRE
+}
+
+enum ScrimFakePreset {
+  DEFAULT
+  NOHEALERS
+  NOTANKS
+  NODPS
+  ONEHEALER
+}
+
+enum ManualRegistrationType {
+  HEALER
+  TANK
 }
 
 model Player {
@@ -68,4 +87,27 @@ model DraftPlayer {
   player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@unique([draftId, playerId])
+}
+
+model AppConfig {
+  id                   Int       @id @default(1)
+  allowedArenaRoleIds  String[]  @default([])
+  allowedArenaUserIds  String[]  @default([])
+  publicCommands       String[]  @default([])
+  scrimFormat          ScrimFormat @default(STANDARD)
+  scrimMaxPlayers      Int       @default(10)
+  scrimFakePreset      ScrimFakePreset @default(DEFAULT)
+  allowAuxHealerSignup Boolean   @default(false)
+  allowAuxTankSignup   Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model ManualRegistration {
+  userId    String
+  role      ManualRegistrationType
+  createdAt DateTime @default(now())
+
+  @@id([userId, role])
+  @@index([role])
 }

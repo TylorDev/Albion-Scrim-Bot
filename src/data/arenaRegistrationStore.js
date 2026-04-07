@@ -86,7 +86,7 @@ export async function registerArenaMember(member, mode = "real") {
   }
 
   const currentCount = await prisma.arenaRegistration.count();
-  const { maxPlayers } = getScrimSettings();
+  const { maxPlayers } = await getScrimSettings();
 
   if (currentCount >= maxPlayers) {
     const playerToReplace = await getReplacementTargetForPlayer(player);
@@ -125,13 +125,13 @@ export async function removeArenaRegistrationByUserId(userId, mode = "real") {
   const player = await getPlayerByUserId(userId);
 
   if (!player) {
-    removeManualHealerUser(userId);
-    removeManualTankUser(userId);
+    await removeManualHealerUser(userId);
+    await removeManualTankUser(userId);
     return false;
   }
 
-  removeManualHealerUser(userId);
-  removeManualTankUser(userId);
+  await removeManualHealerUser(userId);
+  await removeManualTankUser(userId);
 
   const result = await prisma.arenaRegistration.deleteMany({
     where: { playerId: player.id }
@@ -156,14 +156,14 @@ export async function removeArenaRegistrationByUserId(userId, mode = "real") {
 
 export async function clearArenaRegistrations() {
   await prisma.arenaRegistration.deleteMany();
-  clearManualHealers();
-  clearManualTanks();
+  await clearManualHealers();
+  await clearManualTanks();
 }
 
 export async function getArenaPlayers() {
   const registrations = await listArenaRegistrations();
-  const manualHealerUserIds = new Set(getManualHealerUserIds());
-  const manualTankUserIds = new Set(getManualTankUserIds());
+  const manualHealerUserIds = new Set(await getManualHealerUserIds());
+  const manualTankUserIds = new Set(await getManualTankUserIds());
 
   return registrations.map((registration) => {
     if (
@@ -186,7 +186,7 @@ export async function getArenaPlayers() {
 
 export async function startEmptyScrim(settings = DEFAULT_SCRIM_SETTINGS) {
   await clearArenaRegistrations();
-  setScrimSettings({
+  await setScrimSettings({
     ...DEFAULT_SCRIM_SETTINGS,
     ...settings,
     allowAuxHealerSignup: false,
@@ -324,7 +324,7 @@ export async function loadFakeScrim(preset = SCRIM_FAKE_PRESETS.default) {
   const players = await getFakePlayersForPreset(preset);
 
   await clearArenaRegistrations();
-  setScrimSettings({
+  await setScrimSettings({
     ...DEFAULT_SCRIM_SETTINGS,
     fakePreset: preset,
     allowAuxHealerSignup: false,
@@ -345,7 +345,7 @@ export async function loadFakeScrim(preset = SCRIM_FAKE_PRESETS.default) {
 }
 
 export async function toggleSelfHealerRegistration(member, mode = "real") {
-  if (isManualHealerUser(member.id)) {
+  if (await isManualHealerUser(member.id)) {
     await removeArenaRegistrationByUserId(member.id, mode);
 
     return {
@@ -353,7 +353,7 @@ export async function toggleSelfHealerRegistration(member, mode = "real") {
     };
   }
 
-  const manualHealerResult = addManualHealerUser(member.id);
+  const manualHealerResult = await addManualHealerUser(member.id);
 
   if (manualHealerResult.status === "manual_healer_full") {
     return {
@@ -364,7 +364,7 @@ export async function toggleSelfHealerRegistration(member, mode = "real") {
   const registrationResult = await registerArenaMember(member, mode);
 
   if (registrationResult.status === "full") {
-    removeManualHealerUser(member.id);
+    await removeManualHealerUser(member.id);
     return registrationResult;
   }
 
@@ -375,7 +375,7 @@ export async function toggleSelfHealerRegistration(member, mode = "real") {
 }
 
 export async function toggleSelfTankRegistration(member, mode = "real") {
-  if (isManualTankUser(member.id)) {
+  if (await isManualTankUser(member.id)) {
     await removeArenaRegistrationByUserId(member.id, mode);
 
     return {
@@ -383,7 +383,7 @@ export async function toggleSelfTankRegistration(member, mode = "real") {
     };
   }
 
-  const manualTankResult = addManualTankUser(member.id);
+  const manualTankResult = await addManualTankUser(member.id);
 
   if (manualTankResult.status === "manual_tank_full") {
     return {
@@ -394,7 +394,7 @@ export async function toggleSelfTankRegistration(member, mode = "real") {
   const registrationResult = await registerArenaMember(member, mode);
 
   if (registrationResult.status === "full") {
-    removeManualTankUser(member.id);
+    await removeManualTankUser(member.id);
     return registrationResult;
   }
 

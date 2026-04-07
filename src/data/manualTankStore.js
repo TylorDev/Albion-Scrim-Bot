@@ -1,44 +1,35 @@
-import fs from "node:fs";
-import path from "node:path";
+import { ManualRegistrationType } from "@prisma/client";
+import { prisma } from "../database/prisma.js";
 
-const DATA_DIRECTORY = path.resolve(process.cwd(), "data");
-const STORE_PATH = path.resolve(DATA_DIRECTORY, "manual-tanks.json");
 const MAX_MANUAL_TANKS = 2;
 
-function ensureStoreFile() {
-  fs.mkdirSync(DATA_DIRECTORY, { recursive: true });
-
-  if (!fs.existsSync(STORE_PATH)) {
-    fs.writeFileSync(STORE_PATH, JSON.stringify({ userIds: [] }, null, 2), "utf8");
-  }
+async function getTankRegistrations() {
+  return prisma.manualRegistration.findMany({
+    where: { role: ManualRegistrationType.TANK },
+    orderBy: { createdAt: "asc" }
+  });
 }
 
-function readStore() {
-  ensureStoreFile();
-
-  try {
-    const parsed = JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
-    return Array.isArray(parsed.userIds) ? parsed.userIds : [];
-  } catch {
-    return [];
-  }
+export async function getManualTankUserIds() {
+  const registrations = await getTankRegistrations();
+  return registrations.map((registration) => registration.userId);
 }
 
-function writeStore(userIds) {
-  ensureStoreFile();
-  fs.writeFileSync(STORE_PATH, JSON.stringify({ userIds }, null, 2), "utf8");
+export async function isManualTankUser(userId) {
+  const registration = await prisma.manualRegistration.findUnique({
+    where: {
+      userId_role: {
+        userId,
+        role: ManualRegistrationType.TANK
+      }
+    }
+  });
+
+  return Boolean(registration);
 }
 
-export function getManualTankUserIds() {
-  return readStore();
-}
-
-export function isManualTankUser(userId) {
-  return readStore().includes(userId);
-}
-
-export function addManualTankUser(userId) {
-  const current = readStore();
+export async function addManualTankUser(userId) {
+  const current = await getManualTankUserIds();
 
   if (current.includes(userId)) {
     return {
@@ -54,26 +45,35 @@ export function addManualTankUser(userId) {
     };
   }
 
-  const next = [...current, userId];
-  writeStore(next);
+  await prisma.manualRegistration.create({
+    data: {
+      userId,
+      role: ManualRegistrationType.TANK
+    }
+  });
 
   return {
     status: "manual_tank_added",
-    userIds: next
+    userIds: [...current, userId]
   };
 }
 
-export function removeManualTankUser(userId) {
-  const current = readStore();
-  const next = current.filter((item) => item !== userId);
-  writeStore(next);
+export async function removeManualTankUser(userId) {
+  const result = await prisma.manualRegistration.deleteMany({
+    where: {
+      userId,
+      role: ManualRegistrationType.TANK
+    }
+  });
 
   return {
-    status: current.length === next.length ? "not_found" : "manual_tank_removed",
-    userIds: next
+    status: result.count === 0 ? "not_found" : "manual_tank_removed",
+    userIds: await getManualTankUserIds()
   };
 }
 
-export function clearManualTanks() {
-  writeStore([]);
+export async function clearManualTanks() {
+  await prisma.manualRegistration.deleteMany({
+    where: { role: ManualRegistrationType.TANK }
+  });
 }

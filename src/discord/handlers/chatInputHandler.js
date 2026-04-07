@@ -85,11 +85,11 @@ export async function handleChatInputCommand(interaction) {
 
     await removeHealerAuxRoleFromUserIds(
       interaction.guild,
-      getManualHealerUserIds()
+      await getManualHealerUserIds()
     );
     await removeTankAuxRoleFromUserIds(
       interaction.guild,
-      getManualTankUserIds()
+      await getManualTankUserIds()
     );
     await startEmptyScrim(settings);
     await interaction.reply({
@@ -108,11 +108,11 @@ export async function handleChatInputCommand(interaction) {
     const preset = getFakeScrimPreset(interaction);
     await removeHealerAuxRoleFromUserIds(
       interaction.guild,
-      getManualHealerUserIds()
+      await getManualHealerUserIds()
     );
     await removeTankAuxRoleFromUserIds(
       interaction.guild,
-      getManualTankUserIds()
+      await getManualTankUserIds()
     );
     await loadFakeScrim(preset);
     await interaction.reply({

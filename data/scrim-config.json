@@ -1,7 +1,0 @@
-{
-  "format": "standard",
-  "maxPlayers": 10,
-  "fakePreset": "default",
-  "allowAuxHealerSignup": false,
-  "allowAuxTankSignup": false
-}

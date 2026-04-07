@@ -1,12 +1,13 @@
 # Bot de scrims para Discord
 
-Este bot usa Prisma con SQLite para guardar jugadores reales y falsos, armar scrims 5v5 con healers obligatorios y mantener un ranking general por MMR.
+Este bot usa Prisma con PostgreSQL para guardar jugadores, drafts, configuracion de scrims y estados auxiliares del registro. Tambien queda preparado para desplegarse en Railway sin pasos manuales extra.
 
 ## Requisitos
 
 - Node.js 18 o superior
 - Un bot creado en el portal de desarrolladores de Discord
 - Permisos del bot para entrar a tu servidor
+- Una base de datos PostgreSQL
 
 ## Configuracion
 
@@ -15,17 +16,23 @@ Este bot usa Prisma con SQLite para guardar jugadores reales y falsos, armar scr
    - `DISCORD_TOKEN`
    - `CLIENT_ID`
    - `GUILD_ID` o `GUILD_IDS`
-   - `DATABASE_URL="file:./dev.db"`
+   - `DATABASE_URL="postgresql://usuario:password@host:5432/base?schema=public"`
 3. Instala dependencias:
 
 ```bash
 npm install
 ```
 
-4. Crea la base:
+4. Aplica migraciones:
 
 ```bash
-npm run db:push
+npm run db:deploy
+```
+
+Para desarrollo local tambien puedes usar:
+
+```bash
+npm run db:migrate
 ```
 
 5. Si quieres fake de prueba, usa:
@@ -64,7 +71,7 @@ npm start
 
 ## Estructura
 
-- `src/config`: variables de entorno y rutas
+- `src/config`: variables de entorno
 - `src/constants`: nombres de comandos y botones
 - `src/database`: Prisma, cliente e inicializacion
 - `src/data`: acceso a jugadores, drafts y scrims
@@ -72,4 +79,25 @@ npm start
 - `src/services`: matchmaking, simulacion y MMR
 - `src/ui`: embeds y componentes del panel
 
+## Railway
+
+El repo incluye `railway.toml` para que Railway ejecute:
+
+- `npm run db:deploy` antes del deploy
+- `npm start` para iniciar el bot
+
+Variables que debes definir en Railway:
+
+- `DISCORD_TOKEN`
+- `CLIENT_ID`
+- `GUILD_ID` o `GUILD_IDS`
+- `DATABASE_URL`
+
+Si agregas un servicio PostgreSQL dentro del mismo proyecto de Railway, normalmente `DATABASE_URL` se puede vincular directamente desde ese servicio.
+
+## Migracion desde la version legacy
+
+- La app ya no usa SQLite ni archivos JSON para configuracion persistente.
+- En el primer arranque, si detecta archivos legacy en `data/`, importa `settings`, `scrim-config`, `manual-healers` y `manual-tanks` a PostgreSQL.
+- Los registros relacionales del bot ahora viven en Prisma/PostgreSQL mediante migraciones versionadas en `prisma/migrations`.
 

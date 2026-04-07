@@ -4,5 +4,6 @@ node_modules/
 # Variables sensibles
 .env
 
-# Prisma local DB (solo si usas sqlite local)
+# Base de datos local legacy
 prisma/dev.db
+/data/

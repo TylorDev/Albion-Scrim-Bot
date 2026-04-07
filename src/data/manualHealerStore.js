@@ -1,44 +1,35 @@
-import fs from "node:fs";
-import path from "node:path";
+import { ManualRegistrationType } from "@prisma/client";
+import { prisma } from "../database/prisma.js";
 
-const DATA_DIRECTORY = path.resolve(process.cwd(), "data");
-const STORE_PATH = path.resolve(DATA_DIRECTORY, "manual-healers.json");
 const MAX_MANUAL_HEALERS = 2;
 
-function ensureStoreFile() {
-  fs.mkdirSync(DATA_DIRECTORY, { recursive: true });
-
-  if (!fs.existsSync(STORE_PATH)) {
-    fs.writeFileSync(STORE_PATH, JSON.stringify({ userIds: [] }, null, 2), "utf8");
-  }
+async function getHealerRegistrations() {
+  return prisma.manualRegistration.findMany({
+    where: { role: ManualRegistrationType.HEALER },
+    orderBy: { createdAt: "asc" }
+  });
 }
 
-function readStore() {
-  ensureStoreFile();
-
-  try {
-    const parsed = JSON.parse(fs.readFileSync(STORE_PATH, "utf8"));
-    return Array.isArray(parsed.userIds) ? parsed.userIds : [];
-  } catch {
-    return [];
-  }
+export async function getManualHealerUserIds() {
+  const registrations = await getHealerRegistrations();
+  return registrations.map((registration) => registration.userId);
 }
 
-function writeStore(userIds) {
-  ensureStoreFile();
-  fs.writeFileSync(STORE_PATH, JSON.stringify({ userIds }, null, 2), "utf8");
+export async function isManualHealerUser(userId) {
+  const registration = await prisma.manualRegistration.findUnique({
+    where: {
+      userId_role: {
+        userId,
+        role: ManualRegistrationType.HEALER
+      }
+    }
+  });
+
+  return Boolean(registration);
 }
 
-export function getManualHealerUserIds() {
-  return readStore();
-}
-
-export function isManualHealerUser(userId) {
-  return readStore().includes(userId);
-}
-
-export function addManualHealerUser(userId) {
-  const current = readStore();
+export async function addManualHealerUser(userId) {
+  const current = await getManualHealerUserIds();
 
   if (current.includes(userId)) {
     return {
@@ -54,28 +45,37 @@ export function addManualHealerUser(userId) {
     };
   }
 
-  const next = [...current, userId];
-  writeStore(next);
+  await prisma.manualRegistration.create({
+    data: {
+      userId,
+      role: ManualRegistrationType.HEALER
+    }
+  });
 
   return {
     status: "manual_healer_added",
-    userIds: next
+    userIds: [...current, userId]
   };
 }
 
-export function removeManualHealerUser(userId) {
-  const current = readStore();
-  const next = current.filter((item) => item !== userId);
-  writeStore(next);
+export async function removeManualHealerUser(userId) {
+  const result = await prisma.manualRegistration.deleteMany({
+    where: {
+      userId,
+      role: ManualRegistrationType.HEALER
+    }
+  });
 
   return {
-    status: current.length === next.length ? "not_found" : "manual_healer_removed",
-    userIds: next
+    status: result.count === 0 ? "not_found" : "manual_healer_removed",
+    userIds: await getManualHealerUserIds()
   };
 }
 
-export function clearManualHealers() {
-  writeStore([]);
+export async function clearManualHealers() {
+  await prisma.manualRegistration.deleteMany({
+    where: { role: ManualRegistrationType.HEALER }
+  });
 }
 
 export function getMaxManualHealers() {

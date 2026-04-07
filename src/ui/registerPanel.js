@@ -98,7 +98,7 @@ function buildFakeDescription(fakePreset) {
 
 export async function buildRegisterPanel(mode = "real", guild = null) {
   const players = await getArenaPlayers();
-  const settings = getScrimSettings();
+  const settings = await getScrimSettings();
   const title = mode === "fake" ? "Scrim Fake" : "Scrim";
   const description =
     mode === "fake"
@@ -126,7 +126,7 @@ export async function buildRegisterPanel(mode = "real", guild = null) {
 
 export async function buildClosedRegisterPanel(mode = "real", guild = null) {
   const players = await getArenaPlayers();
-  const settings = getScrimSettings();
+  const settings = await getScrimSettings();
   const title = mode === "fake" ? "Scrim Fake" : "Scrim";
 
   return {
