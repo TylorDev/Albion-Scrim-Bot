@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum DraftMode {
+  SIMULATED
+  ARENA
+}
+
+enum DraftStatus {
+  PENDING
+  COMPLETED
+}
+
+enum TeamSide {
+  A
+  B
+}
+
+model Player {
+  id           Int                @id @default(autoincrement())
+  userId       String             @unique
+  username     String
+  mmr          Int                @default(1000)
+  partidas     Int                @default(0)
+  victorias    Int                @default(0)
+  isFake       Boolean            @default(false)
+  isHealer     Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  registration ArenaRegistration?
+  draftPlayers DraftPlayer[]
+}
+
+model ArenaRegistration {
+  id           Int      @id @default(autoincrement())
+  playerId     Int      @unique
+  registeredAt DateTime @default(now())
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+}
+
+model Draft {
+  id               Int         @id @default(autoincrement())
+  mode             DraftMode
+  status           DraftStatus @default(PENDING)
+  teamAAvgMmr      Int
+  teamBAvgMmr      Int
+  teamAProbability Float
+  teamBProbability Float
+  winner           TeamSide?
+  createdAt        DateTime    @default(now())
+  completedAt      DateTime?
+  players          DraftPlayer[]
+}
+
+model DraftPlayer {
+  id       Int      @id @default(autoincrement())
+  draftId  Int
+  playerId Int
+  team     TeamSide
+  position Int
+  draft    Draft    @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([draftId, playerId])
+}

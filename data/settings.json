@@ -1,0 +1,11 @@
+{
+  "allowedArenaRoleIds": [
+    "1129122939749531740",
+    "1129125417220051064"
+  ],
+  "allowedArenaUserIds": [],
+  "publicCommands": [
+    "registrados",
+    "setup"
+  ]
+}

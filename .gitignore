@@ -1,0 +1,8 @@
+# Dependencias
+node_modules/
+
+# Variables sensibles
+.env
+
+# Prisma local DB (solo si usas sqlite local)
+prisma/dev.db
