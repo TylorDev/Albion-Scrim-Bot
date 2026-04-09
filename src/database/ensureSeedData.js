@@ -36,6 +36,10 @@ function getRandomInteger(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function calculateFakePlayerMmr(victorias) {
+  return 950 + (victorias * 25);
+}
+
 function getRandomUniqueRoles(count = 3) {
   const shuffled = [...RANDOM_FAKE_ROLES].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
@@ -53,12 +57,12 @@ export function createRandomFakePlayers(totalPlayers = 20) {
 
   return basePlayers.map((player, index) => {
     const fakeRoles = getRandomUniqueRoles(3);
-    const partidas = index === 0 ? 0 : getRandomInteger(1, 25);
+    const partidas = index === 0 ? 0 : getRandomInteger(1, 12);
     const victorias = index === 0 ? 0 : getRandomInteger(0, partidas);
 
     return {
       ...player,
-      mmr: getRandomInteger(930, 1250),
+      mmr: calculateFakePlayerMmr(victorias),
       partidas,
       victorias,
       fakeRoles,
