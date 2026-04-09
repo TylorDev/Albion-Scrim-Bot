@@ -54,7 +54,7 @@ export async function seedFakePlayers(totalPlayers = 20) {
       create: {
         ...player,
         isFake: true,
-        mmr: 1000,
+        mmr: 950,
         partidas: 0,
         victorias: 0
       }

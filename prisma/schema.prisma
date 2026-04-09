@@ -45,7 +45,7 @@ model Player {
   id           Int                @id @default(autoincrement())
   userId       String             @unique
   username     String
-  mmr          Int                @default(1000)
+  mmr          Int                @default(950)
   partidas     Int                @default(0)
   victorias    Int                @default(0)
   isFake       Boolean            @default(false)

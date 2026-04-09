@@ -36,14 +36,14 @@ async function main() {
         username: player.username,
         isFake: true,
         isHealer: player.isHealer,
-        mmr: 1000,
+        mmr: 950,
         partidas: 0,
         victorias: 0
       },
       create: {
         ...player,
         isFake: true,
-        mmr: 1000,
+        mmr: 950,
         partidas: 0,
         victorias: 0
       }
