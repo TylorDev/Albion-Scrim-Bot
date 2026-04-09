@@ -72,6 +72,10 @@ export function getTankPriorityFromMember(member) {
 }
 
 export function getFakePlayerRoles(player) {
+  if (Array.isArray(player.fakeRoles) && player.fakeRoles.length > 0) {
+    return player.fakeRoles;
+  }
+
   if (player.isHealer) {
     return [PLAYER_ROLES.healer];
   }

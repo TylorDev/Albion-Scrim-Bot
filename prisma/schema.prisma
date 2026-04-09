@@ -50,6 +50,7 @@ model Player {
   victorias    Int                @default(0)
   isFake       Boolean            @default(false)
   isHealer     Boolean            @default(false)
+  fakeRoles    String[]           @default([])
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   registration ArenaRegistration?

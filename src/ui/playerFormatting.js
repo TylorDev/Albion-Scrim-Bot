@@ -117,6 +117,12 @@ async function getRealPlayerRoleTags(player, guild) {
 }
 
 function getFakePlayerRoleTags(player, guild) {
+  if (Array.isArray(player.fakeRoles) && player.fakeRoles.length > 0) {
+    return player.fakeRoles.map((roleName) =>
+      getRoleMentionOrFallback(guild, roleName, roleName)
+    );
+  }
+
   if (player.isHealer) {
     return [getRoleMentionOrFallback(guild, PLAYER_ROLES.healer, PLAYER_ROLES.healer)];
   }

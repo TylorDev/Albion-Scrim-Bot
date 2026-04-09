@@ -18,7 +18,8 @@ export async function ensurePlayerForMember(member) {
     update: {
       username,
       isFake: false,
-      isHealer
+      isHealer,
+      fakeRoles: []
     },
     create: {
       userId: member.id,
@@ -27,7 +28,8 @@ export async function ensurePlayerForMember(member) {
       partidas: 0,
       victorias: 0,
       isFake: false,
-      isHealer
+      isHealer,
+      fakeRoles: []
     }
   });
 }
@@ -113,7 +115,9 @@ export async function getRandomFakePlayersByAssignedRole(roleName, count = 1) {
   });
 
   const matchingPlayers = players.filter(
-    (player) => FAKE_PLAYER_ROLES[player.userId] === roleName
+    (player) =>
+      (Array.isArray(player.fakeRoles) && player.fakeRoles.includes(roleName)) ||
+      FAKE_PLAYER_ROLES[player.userId] === roleName
   );
   const shuffled = [...matchingPlayers];
 

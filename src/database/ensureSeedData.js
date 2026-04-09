@@ -1,37 +1,75 @@
 import { prisma } from "./prisma.js";
+import { PLAYER_ROLES } from "../constants/playerRoles.js";
 
-export const seedPlayers = [
-  { userId: "fake_player_01", username: "Astra", isHealer: false },
-  { userId: "fake_player_02", username: "Blaze", isHealer: false },
-  { userId: "fake_player_03", username: "Cipher", isHealer: false },
-  { userId: "fake_player_04", username: "Drako", isHealer: false },
-  { userId: "fake_player_05", username: "Echo", isHealer: false },
-  { userId: "fake_player_06", username: "Frost", isHealer: false },
-  { userId: "fake_player_07", username: "Ghost", isHealer: false },
-  { userId: "fake_player_08", username: "Havoc", isHealer: false },
-  { userId: "fake_player_09", username: "Inferno", isHealer: false },
-  { userId: "fake_player_10", username: "Jinx", isHealer: false },
-  { userId: "fake_player_11", username: "Kairo", isHealer: false },
-  { userId: "fake_player_12", username: "Lynx", isHealer: false },
-  { userId: "fake_player_13", username: "Mako", isHealer: false },
-  { userId: "fake_player_14", username: "Nova", isHealer: false },
-  { userId: "fake_player_15", username: "Onyx", isHealer: false },
-  { userId: "fake_player_16", username: "Pyro", isHealer: false },
-  { userId: "fake_player_17", username: "Quark", isHealer: false },
-  { userId: "fake_player_18", username: "Rogue", isHealer: false },
-  { userId: "fake_player_19", username: "Shade", isHealer: false },
-  { userId: "fake_player_20", username: "Titan", isHealer: false },
-  { userId: "fake_healer_01", username: "Lumina", isHealer: true },
-  { userId: "fake_healer_02", username: "Seraph", isHealer: true }
+const fakePlayerNames = [
+  "Astra",
+  "Blaze",
+  "Cipher",
+  "Drako",
+  "Echo",
+  "Frost",
+  "Ghost",
+  "Havoc",
+  "Inferno",
+  "Jinx",
+  "Kairo",
+  "Lynx",
+  "Mako",
+  "Nova",
+  "Onyx",
+  "Pyro",
+  "Quark",
+  "Rogue",
+  "Shade",
+  "Titan"
 ];
 
+const RANDOM_FAKE_ROLES = [
+  PLAYER_ROLES.debuffer,
+  PLAYER_ROLES.dps,
+  PLAYER_ROLES.rdps,
+  PLAYER_ROLES.healer,
+  PLAYER_ROLES.tank
+];
+
+function getRandomInteger(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getRandomUniqueRoles(count = 3) {
+  const shuffled = [...RANDOM_FAKE_ROLES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+export function createFakePlayerNames(totalPlayers = 20) {
+  return fakePlayerNames.slice(0, totalPlayers).map((username, index) => ({
+    userId: `fake_player_${String(index + 1).padStart(2, "0")}`,
+    username
+  }));
+}
+
+export function createRandomFakePlayers(totalPlayers = 20) {
+  const basePlayers = createFakePlayerNames(totalPlayers);
+
+  return basePlayers.map((player, index) => {
+    const fakeRoles = getRandomUniqueRoles(3);
+    const partidas = index === 0 ? 0 : getRandomInteger(1, 25);
+    const victorias = index === 0 ? 0 : getRandomInteger(0, partidas);
+
+    return {
+      ...player,
+      mmr: getRandomInteger(930, 1250),
+      partidas,
+      victorias,
+      fakeRoles,
+      isFake: true,
+      isHealer: fakeRoles.includes(PLAYER_ROLES.healer)
+    };
+  });
+}
+
 export async function seedFakePlayers(totalPlayers = 20) {
-  const healers = seedPlayers.filter((player) => player.isHealer).slice(0, 2);
-  const regularCount = Math.max(totalPlayers - healers.length, 0);
-  const regularPlayers = seedPlayers
-    .filter((player) => !player.isHealer)
-    .slice(0, regularCount);
-  const playersToSeed = [...regularPlayers, ...healers].slice(0, totalPlayers);
+  const playersToSeed = createRandomFakePlayers(totalPlayers);
   const selectedUserIds = playersToSeed.map((player) => player.userId);
 
   await prisma.player.deleteMany({
@@ -48,16 +86,14 @@ export async function seedFakePlayers(totalPlayers = 20) {
       where: { userId: player.userId },
       update: {
         username: player.username,
+        mmr: player.mmr,
+        partidas: player.partidas,
+        victorias: player.victorias,
         isFake: true,
-        isHealer: player.isHealer
+        isHealer: player.isHealer,
+        fakeRoles: player.fakeRoles
       },
-      create: {
-        ...player,
-        isFake: true,
-        mmr: 950,
-        partidas: 0,
-        victorias: 0
-      }
+      create: player
     });
   }
 
