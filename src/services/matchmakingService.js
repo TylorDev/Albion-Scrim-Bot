@@ -1,6 +1,5 @@
-import { SCRIM_FORMATS } from "../data/scrimConfigStore.js";
 import { PLAYER_ROLES } from "../constants/playerRoles.js";
-import { hasPlayerRole, normalizeRoleName } from "../utils/playerRoles.js";
+import { hasPlayerRole } from "../utils/playerRoles.js";
 
 function averageMmr(players) {
   if (players.length === 0) {
@@ -18,6 +17,22 @@ function getExpectedWinChance(ownAverage, enemyAverage) {
   return Number(rawProbability.toFixed(4));
 }
 
+function buildMatchup(teamA, teamB) {
+  const teamAAvgMmr = averageMmr(teamA);
+  const teamBAvgMmr = averageMmr(teamB);
+  const teamAProbability = getExpectedWinChance(teamAAvgMmr, teamBAvgMmr);
+  const teamBProbability = Number((1 - teamAProbability).toFixed(4));
+
+  return {
+    teamA,
+    teamB,
+    teamAAvgMmr,
+    teamBAvgMmr,
+    teamAProbability,
+    teamBProbability
+  };
+}
+
 function createTeamState() {
   return {
     players: [],
@@ -28,70 +43,6 @@ function createTeamState() {
 function assignPlayer(team, player) {
   team.players.push(player);
   team.totalMmr += player.mmr;
-}
-
-function sortRoleCandidates(left, right) {
-  if (left.roleCount !== right.roleCount) {
-    return left.roleCount - right.roleCount;
-  }
-
-  if (left.mmr !== right.mmr) {
-    return right.mmr - left.mmr;
-  }
-
-  return left.username.localeCompare(right.username);
-}
-
-function sortHealerCandidates(left, right) {
-  if ((left.healerPriority || 0) !== (right.healerPriority || 0)) {
-    return (right.healerPriority || 0) - (left.healerPriority || 0);
-  }
-
-  return sortRoleCandidates(left, right);
-}
-
-function sortTankCandidates(left, right) {
-  if ((left.tankPriority || 0) !== (right.tankPriority || 0)) {
-    return (right.tankPriority || 0) - (left.tankPriority || 0);
-  }
-
-  return sortRoleCandidates(left, right);
-}
-
-function getRoleCandidates(players, roleName) {
-  return players.filter((player) =>
-    normalizeRoleName(roleName) === normalizeRoleName(PLAYER_ROLES.healer)
-      ? (player.healerPriority || 0) > 0
-      : normalizeRoleName(roleName) === normalizeRoleName(PLAYER_ROLES.tank)
-        ? (player.tankPriority || 0) > 0
-        : hasPlayerRole(player, roleName)
-  );
-}
-
-function sortRequiredRolesByAvailability(requiredRoles, availablePlayers) {
-  return [...requiredRoles].sort((left, right) => {
-    const leftCandidates = getRoleCandidates(availablePlayers, left);
-    const rightCandidates = getRoleCandidates(availablePlayers, right);
-
-    if (leftCandidates.length !== rightCandidates.length) {
-      return leftCandidates.length - rightCandidates.length;
-    }
-
-    const leftFlexScore = leftCandidates.reduce(
-      (sum, player) => sum + (player.roleCount || 0),
-      0
-    );
-    const rightFlexScore = rightCandidates.reduce(
-      (sum, player) => sum + (player.roleCount || 0),
-      0
-    );
-
-    if (leftFlexScore !== rightFlexScore) {
-      return leftFlexScore - rightFlexScore;
-    }
-
-    return left.localeCompare(right);
-  });
 }
 
 function chooseBalancedTeam(teamA, teamB, maxPlayersPerTeam) {
@@ -114,170 +65,179 @@ function chooseBalancedTeam(teamA, teamB, maxPlayersPerTeam) {
   return teamA;
 }
 
-function buildMatchup(teamA, teamB) {
-  const teamAAvgMmr = averageMmr(teamA.players);
-  const teamBAvgMmr = averageMmr(teamB.players);
-  const teamAProbability = getExpectedWinChance(teamAAvgMmr, teamBAvgMmr);
-  const teamBProbability = Number((1 - teamAProbability).toFixed(4));
-
-  return {
-    teamA: teamA.players,
-    teamB: teamB.players,
-    teamAAvgMmr,
-    teamBAvgMmr,
-    teamAProbability,
-    teamBProbability
-  };
-}
-
-function getRequiredRoles(format) {
-  if (format === SCRIM_FORMATS.meta) {
-    return [
-      PLAYER_ROLES.healer,
-      PLAYER_ROLES.tank,
-      PLAYER_ROLES.rdps,
-      PLAYER_ROLES.dps,
-      PLAYER_ROLES.debuffer
-    ];
-  }
-
-  if (format === SCRIM_FORMATS.libre) {
-    return [PLAYER_ROLES.healer];
-  }
-
-  return [PLAYER_ROLES.healer, PLAYER_ROLES.tank];
-}
-
-function validatePlayerCount(players, maxPlayers, format) {
-  if (players.length !== maxPlayers) {
-    throw new Error(`La scrim necesita exactamente ${maxPlayers} jugadores.`);
-  }
-
-  if (players.length % 2 !== 0) {
-    throw new Error("La scrim necesita un numero par de jugadores.");
-  }
-
-  if (format === SCRIM_FORMATS.meta && players.length !== 10) {
-    throw new Error("El modo meta necesita exactamente 10 jugadores.");
-  }
-}
-
-function getRoleShortageError(roleName, players, requiredCount) {
-  const candidates = getRoleCandidates(players, roleName);
-  const missingCount = requiredCount - candidates.length;
-
-  if (normalizeRoleName(roleName) === normalizeRoleName(PLAYER_ROLES.healer)) {
-    if (candidates.length === 0) {
-      return "No hay jugadores con rol `Main Healer`, `Healer` o `Healer-Auxiliar`. Pidele a alguien que pulse el boton `Soy healer` para registrarse como healer.";
-    }
-
-    if (candidates.length === 1) {
-      return "Solo hay 1 healer disponible. Pidele a alguien que pulse el boton `Soy healer` para completar el healer restante.";
-    }
-
-    return missingCount === 1
-      ? "Falta 1 healer. Pidele a alguien que pulse el boton `Soy healer` para completar el healer restante."
-      : `Faltan ${missingCount} healers. Pidele a jugadores que pulsen el boton \`Soy healer\` para completar los healers restantes.`;
-  }
-
-  if (normalizeRoleName(roleName) === normalizeRoleName(PLAYER_ROLES.tank)) {
-    if (candidates.length === 0) {
-      return "No hay jugadores con rol `Tank` o `Tank-Auxiliar`. Pidele a alguien que pulse el boton `Soy tank` para registrarse como tank.";
-    }
-
-    if (candidates.length === 1) {
-      return "Solo hay 1 tank disponible. Pidele a alguien que pulse el boton `Soy tank` para completar el tank restante.";
-    }
-
-    return missingCount === 1
-      ? "Falta 1 tank. Pidele a alguien que pulse el boton `Soy tank` para completar el tank restante."
-      : `Faltan ${missingCount} tanks. Pidele a jugadores que pulsen el boton \`Soy tank\` para completar los tanks restantes.`;
-  }
-
-  return `Se necesitan al menos ${requiredCount} jugadores con el rol \`${roleName}\` para esta scrim.`;
-}
-
-function reserveRequiredRole(roleName, availablePlayers, teamA, teamB, maxPlayersPerTeam) {
-  const candidates = getRoleCandidates(availablePlayers, roleName)
-    .sort(
-      normalizeRoleName(roleName) === normalizeRoleName(PLAYER_ROLES.healer)
-        ? sortHealerCandidates
-        : normalizeRoleName(roleName) === normalizeRoleName(PLAYER_ROLES.tank)
-          ? sortTankCandidates
-          : sortRoleCandidates
-    );
-
-  if (candidates.length < 2) {
-    return false;
-  }
-
-  const firstChoice = candidates[0];
-  const secondChoice = candidates[1];
-  const strongerPlayer =
-    firstChoice.mmr >= secondChoice.mmr ? firstChoice : secondChoice;
-  const weakerPlayer = strongerPlayer.id === firstChoice.id ? secondChoice : firstChoice;
-  const firstTeam = chooseBalancedTeam(teamA, teamB, maxPlayersPerTeam);
-  const secondTeam = firstTeam === teamA ? teamB : teamA;
-
-  assignPlayer(firstTeam, strongerPlayer);
-  assignPlayer(secondTeam, weakerPlayer);
-
-  return availablePlayers.filter(
-    (player) => player.id !== strongerPlayer.id && player.id !== weakerPlayer.id
-  );
-}
-
-function fillRemainingPlayers(availablePlayers, teamA, teamB, maxPlayersPerTeam) {
-  const sortedPlayers = [...availablePlayers].sort((left, right) => right.mmr - left.mmr);
+function fillRemainingPlayers(players) {
+  const teamA = createTeamState();
+  const teamB = createTeamState();
+  const maxPlayersPerTeam = Math.ceil(players.length / 2);
+  const sortedPlayers = [...players].sort((left, right) => right.mmr - left.mmr);
 
   for (const player of sortedPlayers) {
     const team = chooseBalancedTeam(teamA, teamB, maxPlayersPerTeam);
     assignPlayer(team, player);
   }
+
+  return buildMatchup(teamA.players, teamB.players);
 }
 
-export function buildBalancedTeams(players) {
-  const teamA = createTeamState();
-  const teamB = createTeamState();
-  const maxPlayersPerTeam = Math.ceil(players.length / 2);
-  fillRemainingPlayers(players, teamA, teamB, maxPlayersPerTeam);
-  return buildMatchup(teamA, teamB);
+function isHealerPlayer(player) {
+  return (
+    player.isHealer ||
+    (player.healerPriority || 0) > 0 ||
+    player.manualHealer === true ||
+    hasPlayerRole(player, PLAYER_ROLES.healer) ||
+    hasPlayerRole(player, PLAYER_ROLES.mainHealer) ||
+    hasPlayerRole(player, PLAYER_ROLES.healerAuxiliar)
+  );
 }
 
-export function buildScrimTeams(players, settings) {
-  validatePlayerCount(players, settings.maxPlayers, settings.format);
+function countNewPlayers(team) {
+  return team.filter((player) => (player.partidas || 0) === 0).length;
+}
 
-  const maxPlayersPerTeam = settings.maxPlayers / 2;
-  const teamA = createTeamState();
-  const teamB = createTeamState();
-  let availablePlayers = [...players];
-  const remainingRequiredRoles = [...getRequiredRoles(settings.format)];
+function calculateTeamScore(team) {
+  return team.reduce((total, player) => {
+    const confidence = Math.min((player.partidas || 0) / 10, 1);
+    const weight = Math.max(confidence, 0.3);
+    return total + player.mmr * weight;
+  }, 0);
+}
 
-  while (remainingRequiredRoles.length > 0) {
-    const [roleName] = sortRequiredRolesByAvailability(
-      remainingRequiredRoles,
-      availablePlayers
-    );
-    const remainingPlayers = reserveRequiredRole(
-      roleName,
-      availablePlayers,
-      teamA,
-      teamB,
-      maxPlayersPerTeam
-    );
+function getCombinations(players, size, startIndex = 0, current = [], combinations = []) {
+  if (current.length === size) {
+    combinations.push([...current]);
+    return combinations;
+  }
 
-    if (!remainingPlayers) {
-      throw new Error(getRoleShortageError(roleName, availablePlayers, 2));
-    }
+  for (let index = startIndex; index <= players.length - (size - current.length); index += 1) {
+    current.push(players[index]);
+    getCombinations(players, size, index + 1, current, combinations);
+    current.pop();
+  }
 
-    availablePlayers = remainingPlayers;
-    const roleIndex = remainingRequiredRoles.indexOf(roleName);
+  return combinations;
+}
 
-    if (roleIndex >= 0) {
-      remainingRequiredRoles.splice(roleIndex, 1);
+function createPlayerIdSet(players) {
+  return new Set(players.map((player) => player.id));
+}
+
+function buildRemainingPlayers(allPlayers, selectedPlayers) {
+  const selectedIds = createPlayerIdSet(selectedPlayers);
+  return allPlayers.filter((player) => !selectedIds.has(player.id));
+}
+
+function createBalancedTeamsFromHealers(healerA, healerB, otherPlayers) {
+  const extraPlayersPerTeam = (otherPlayers.length / 2);
+
+  if (!Number.isInteger(extraPlayersPerTeam)) {
+    return null;
+  }
+
+  const combinations = getCombinations(otherPlayers, extraPlayersPerTeam);
+  let bestResult = null;
+  let lowestError = Number.POSITIVE_INFINITY;
+
+  for (const groupAExtra of combinations) {
+    const groupBExtra = buildRemainingPlayers(otherPlayers, groupAExtra);
+    const teamA = [healerA, ...groupAExtra];
+    const teamB = [healerB, ...groupBExtra];
+    const scoreA = calculateTeamScore(teamA);
+    const scoreB = calculateTeamScore(teamB);
+    const scoreDifference = Math.abs(scoreA - scoreB);
+    const healerDifference = Math.abs((healerA.mmr || 0) - (healerB.mmr || 0));
+    const newPlayersPenalty =
+      Math.abs(countNewPlayers(teamA) - countNewPlayers(teamB)) * 50;
+    const totalError = scoreDifference + healerDifference + newPlayersPenalty;
+
+    if (totalError < lowestError) {
+      lowestError = totalError;
+      bestResult = {
+        teamA,
+        teamB
+      };
     }
   }
 
-  fillRemainingPlayers(availablePlayers, teamA, teamB, maxPlayersPerTeam);
-  return buildMatchup(teamA, teamB);
+  return bestResult;
+}
+
+function calculateTotalError(teamA, teamB, healerA, healerB) {
+  const scoreDifference = Math.abs(
+    calculateTeamScore(teamA) - calculateTeamScore(teamB)
+  );
+  const healerDifference = Math.abs((healerA.mmr || 0) - (healerB.mmr || 0));
+  const newPlayersPenalty =
+    Math.abs(countNewPlayers(teamA) - countNewPlayers(teamB)) * 50;
+
+  return scoreDifference + healerDifference + newPlayersPenalty;
+}
+
+function buildBalancedTeamsWithHealers(players) {
+  const healers = players.filter(isHealerPlayer);
+  const others = players.filter((player) => !isHealerPlayer(player));
+
+  if (players.length !== 10) {
+    throw new Error("La scrim necesita exactamente 10 jugadores.");
+  }
+
+  if (healers.length !== 2) {
+    if (healers.length < 2) {
+      throw new Error(
+        healers.length === 0
+          ? "No hay jugadores con rol `Main Healer`, `Healer` o `Healer-Auxiliar`. Pidele a alguien que pulse el boton `Soy healer` para registrarse como healer."
+          : "Solo hay 1 healer disponible. Pidele a alguien que pulse el boton `Soy healer` para completar el healer restante."
+      );
+    }
+
+    throw new Error("Se requieren exactamente 2 healers para balancear la scrim.");
+  }
+
+  if (others.length !== 8) {
+    throw new Error("Se requieren exactamente 8 jugadores no healer para balancear la scrim.");
+  }
+
+  const directResult = createBalancedTeamsFromHealers(healers[0], healers[1], others);
+  const swappedResult = createBalancedTeamsFromHealers(healers[1], healers[0], others);
+  const selectedResult = directResult || swappedResult;
+
+  if (!selectedResult) {
+    throw new Error("No pude generar equipos balanceados con la composicion actual.");
+  }
+
+  const selectedError = calculateTotalError(
+    selectedResult.teamA,
+    selectedResult.teamB,
+    selectedResult.teamA[0],
+    selectedResult.teamB[0]
+  );
+  const swappedError = swappedResult
+    ? calculateTotalError(
+        swappedResult.teamA,
+        swappedResult.teamB,
+        swappedResult.teamA[0],
+        swappedResult.teamB[0]
+      )
+    : Number.POSITIVE_INFINITY;
+
+  if (swappedError < selectedError) {
+    return buildMatchup(swappedResult.teamA, swappedResult.teamB);
+  }
+
+  return buildMatchup(selectedResult.teamA, selectedResult.teamB);
+}
+
+export function buildBalancedTeams(players) {
+  try {
+    return buildBalancedTeamsWithHealers(players);
+  } catch {
+    return fillRemainingPlayers(players);
+  }
+}
+
+export function buildScrimTeams(players, settings) {
+  if (settings.maxPlayers !== 10) {
+    return fillRemainingPlayers(players);
+  }
+
+  return buildBalancedTeamsWithHealers(players);
 }
