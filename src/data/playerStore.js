@@ -23,7 +23,7 @@ export async function ensurePlayerForMember(member) {
     create: {
       userId: member.id,
       username,
-      mmr: 1000,
+      mmr: 950,
       partidas: 0,
       victorias: 0,
       isFake: false,
