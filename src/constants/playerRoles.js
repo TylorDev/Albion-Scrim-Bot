@@ -6,7 +6,7 @@ export const PLAYER_ROLES = {
   tankAuxiliar: "Tank-Auxiliar",
   dps: "Dps",
   rdps: "Rdps",
-  debuffer: "Debuffer"
+  debuffer: "Prutrefacto"
 };
 
 export const PLAYABLE_ROLE_NAMES = [

@@ -90,6 +90,22 @@ function isHealerPlayer(player) {
   );
 }
 
+function sortHealerCandidates(left, right) {
+  if ((left.healerPriority || 0) !== (right.healerPriority || 0)) {
+    return (right.healerPriority || 0) - (left.healerPriority || 0);
+  }
+
+  if ((left.mmr || 0) !== (right.mmr || 0)) {
+    return (right.mmr || 0) - (left.mmr || 0);
+  }
+
+  if ((left.victorias || 0) !== (right.victorias || 0)) {
+    return (right.victorias || 0) - (left.victorias || 0);
+  }
+
+  return (left.username || "").localeCompare(right.username || "");
+}
+
 function countNewPlayers(team) {
   return team.filter((player) => (player.partidas || 0) === 0).length;
 }
@@ -124,6 +140,29 @@ function createPlayerIdSet(players) {
 function buildRemainingPlayers(allPlayers, selectedPlayers) {
   const selectedIds = createPlayerIdSet(selectedPlayers);
   return allPlayers.filter((player) => !selectedIds.has(player.id));
+}
+
+function selectHealersAndOthers(players) {
+  const healerCandidates = players.filter(isHealerPlayer);
+
+  if (healerCandidates.length < 2) {
+    throw new Error(
+      healerCandidates.length === 0
+        ? "No hay jugadores con rol `Main Healer`, `Healer` o `Healer-Auxiliar`. Pidele a alguien que pulse el boton `Soy healer` para registrarse como healer."
+        : "Solo hay 1 healer disponible. Pidele a alguien que pulse el boton `Soy healer` para completar el healer restante."
+    );
+  }
+
+  const selectedHealers =
+    healerCandidates.length > 2
+      ? [...healerCandidates].sort(sortHealerCandidates).slice(0, 2)
+      : healerCandidates;
+  const others = buildRemainingPlayers(players, selectedHealers);
+
+  return {
+    healers: selectedHealers,
+    others
+  };
 }
 
 function createBalancedTeamsFromHealers(healerA, healerB, otherPlayers) {
@@ -173,23 +212,10 @@ function calculateTotalError(teamA, teamB, healerA, healerB) {
 }
 
 function buildBalancedTeamsWithHealers(players) {
-  const healers = players.filter(isHealerPlayer);
-  const others = players.filter((player) => !isHealerPlayer(player));
+  const { healers, others } = selectHealersAndOthers(players);
 
   if (players.length !== 10) {
     throw new Error("La scrim necesita exactamente 10 jugadores.");
-  }
-
-  if (healers.length !== 2) {
-    if (healers.length < 2) {
-      throw new Error(
-        healers.length === 0
-          ? "No hay jugadores con rol `Main Healer`, `Healer` o `Healer-Auxiliar`. Pidele a alguien que pulse el boton `Soy healer` para registrarse como healer."
-          : "Solo hay 1 healer disponible. Pidele a alguien que pulse el boton `Soy healer` para completar el healer restante."
-      );
-    }
-
-    throw new Error("Se requieren exactamente 2 healers para balancear la scrim.");
   }
 
   if (others.length !== 8) {

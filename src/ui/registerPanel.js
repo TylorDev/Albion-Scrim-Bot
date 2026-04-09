@@ -66,7 +66,7 @@ function buildRegisterButtons(settings) {
 
 function buildRequirementsLabel(settings) {
   if (settings.format === SCRIM_FORMATS.meta) {
-    return "Modo Meta: 1 Healer, 1 Rdps, 1 Dps, 1 Tank y 1 Debuffer por equipo.";
+    return "Modo Meta: 1 Healer, 1 Rdps, 1 Dps, 1 Tank y 1 Prutrefacto por equipo.";
   }
 
   if (settings.format === SCRIM_FORMATS.libre) {
@@ -93,7 +93,7 @@ function buildFakeDescription(fakePreset) {
     return "Preset OneHealer: 1 Healer. El resto son Tank, Dps y Rdps.";
   }
 
-  return "Preset Default: entran 2 Healers fijos y una mezcla base de Tank, Rdps, Debuffer y Dps.";
+  return "Preset Default: entran 2 Healers fijos y una mezcla base de Tank, Rdps, Prutrefacto y Dps.";
 }
 
 export async function buildRegisterPanel(mode = "real", guild = null) {
