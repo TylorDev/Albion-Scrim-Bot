@@ -141,7 +141,7 @@ model CommunityRegistrationEntry {
   id            Int                        @id @default(autoincrement())
   boardId       Int
   batchNumber   Int
-  userId        String
+  userId        String                     @unique
   username      String
   arena         Boolean                    @default(false)
   scrim         Boolean                    @default(false)
@@ -151,6 +151,5 @@ model CommunityRegistrationEntry {
   updatedAt     DateTime                   @updatedAt
   board         CommunityRegistrationBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
 
-  @@unique([boardId, userId])
   @@index([boardId, batchNumber])
 }

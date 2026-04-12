@@ -54,6 +54,7 @@ import {
   deleteCommunityRegistrationEntry,
   getCommunityRegistrationBoard,
   getCommunityRegistrationEntry,
+  getCommunityRegistrationEntryByUserId,
   getFirstOpenBatch,
   updateCommunityRegistrationEntry
 } from "../../data/communityRegistrationStore.js";
@@ -285,14 +286,11 @@ export async function handleButtonInteraction(interaction) {
     }
 
     if (communityButton.prefix === BUTTON_IDS.communityRegisterPrefix) {
-      const existingEntry = await getCommunityRegistrationEntry(
-        communityButton.boardId,
-        interaction.user.id
-      );
+      const existingEntry = await getCommunityRegistrationEntryByUserId(interaction.user.id);
 
       if (existingEntry) {
         await interaction.reply({
-          content: "Ya estas registrado en esta lista. Usa los botones de roles para actualizar tus preferencias.",
+          content: "No puedes volver a registrarte porque tu usuario ya existe en la base de datos del registro.",
           ephemeral: true
         });
         return;

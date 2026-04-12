@@ -84,11 +84,14 @@ export async function getCommunityRegistrationBatch(boardId, batchNumber) {
 export async function getCommunityRegistrationEntry(boardId, userId) {
   return prisma.communityRegistrationEntry.findUnique({
     where: {
-      boardId_userId: {
-        boardId,
-        userId
-      }
+      userId
     }
+  });
+}
+
+export async function getCommunityRegistrationEntryByUserId(userId) {
+  return prisma.communityRegistrationEntry.findUnique({
+    where: { userId }
   });
 }
 
