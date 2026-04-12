@@ -1,6 +1,9 @@
 import { PermissionFlagsBits } from "discord.js";
 import { BUTTON_IDS } from "../../constants/customIds.js";
 import {
+  COMMUNITY_REGISTRATION_ROLE_ORDER
+} from "../../constants/communityRegistrationRoles.js";
+import {
   clearArenaRegistrations,
   registerArenaMember,
   removeArenaRegistrationByUserId,
@@ -44,6 +47,21 @@ import {
   getManualTankUserIds,
   isManualTankUser
 } from "../../data/manualTankStore.js";
+import {
+  closeCommunityRegistrationBoard,
+  createCommunityRegistrationBatch,
+  createCommunityRegistrationEntry,
+  deleteCommunityRegistrationEntry,
+  getCommunityRegistrationBoard,
+  getCommunityRegistrationEntry,
+  getFirstOpenBatch,
+  updateCommunityRegistrationEntry
+} from "../../data/communityRegistrationStore.js";
+import { buildCommunityRegistrationPanel } from "../../ui/communityRegistrationPanel.js";
+import {
+  assignCommunityRole,
+  removeAllCommunityRoles
+} from "../../utils/communityRegistrationRoles.js";
 
 function getPanelModeFromMessage(interaction) {
   const title = interaction.message.embeds?.[0]?.title?.toLowerCase() || "";
@@ -85,6 +103,126 @@ function parseRematchButton(customId) {
   };
 }
 
+function parseCommunityButton(customId) {
+  const [prefix, boardId] = customId.split(":");
+
+  if (!prefix || !boardId) {
+    return null;
+  }
+
+  const allowedPrefixes = [
+    BUTTON_IDS.communityRegisterPrefix,
+    BUTTON_IDS.communityArenaPrefix,
+    BUTTON_IDS.communityScrimPrefix,
+    BUTTON_IDS.communityCrystalPrefix,
+    BUTTON_IDS.communityCrystal20Prefix,
+    BUTTON_IDS.communityCancelPrefix,
+    BUTTON_IDS.communityClosePrefix
+  ];
+
+  if (!allowedPrefixes.includes(prefix)) {
+    return null;
+  }
+
+  return {
+    prefix,
+    boardId: Number(boardId)
+  };
+}
+
+function getCommunityRoleKeyByPrefix(prefix) {
+  if (prefix === BUTTON_IDS.communityArenaPrefix) {
+    return "arena";
+  }
+
+  if (prefix === BUTTON_IDS.communityScrimPrefix) {
+    return "scrim";
+  }
+
+  if (prefix === BUTTON_IDS.communityCrystalPrefix) {
+    return "crystalLeague";
+  }
+
+  if (prefix === BUTTON_IDS.communityCrystal20Prefix) {
+    return "crystal20v20";
+  }
+
+  return null;
+}
+
+async function buildCommunityBoardMessage(interaction, boardId, batchNumber) {
+  const board = await getCommunityRegistrationBoard(boardId);
+  const entries = board.entries.filter((entry) => entry.batchNumber === batchNumber);
+
+  return buildCommunityRegistrationPanel({
+    boardId,
+    batchNumber,
+    isClosed: board.isClosed,
+    entries
+  });
+}
+
+async function refreshCommunityBoardMessages(interaction, boardId) {
+  const board = await getCommunityRegistrationBoard(boardId);
+
+  if (!board) {
+    return;
+  }
+
+  for (const batch of board.batches) {
+    const channel =
+      interaction.channelId === batch.channelId
+        ? interaction.channel
+        : await interaction.guild.channels.fetch(batch.channelId).catch(() => null);
+
+    if (!channel?.messages) {
+      continue;
+    }
+
+    const message = await channel.messages.fetch(batch.messageId).catch(() => null);
+
+    if (!message) {
+      continue;
+    }
+
+    const entries = board.entries.filter((entry) => entry.batchNumber === batch.batchNumber);
+
+    await message.edit(
+      buildCommunityRegistrationPanel({
+        boardId,
+        batchNumber: batch.batchNumber,
+        isClosed: board.isClosed,
+        entries
+      })
+    );
+  }
+}
+
+async function createNextCommunityBatchMessage(interaction, boardId) {
+  const board = await getCommunityRegistrationBoard(boardId);
+  const nextBatchNumber =
+    board.batches.reduce((max, batch) => Math.max(max, batch.batchNumber), 0) + 1;
+  const panel = buildCommunityRegistrationPanel({
+    boardId,
+    batchNumber: nextBatchNumber,
+    isClosed: false,
+    entries: []
+  });
+  const message = await interaction.channel.send(panel);
+
+  await createCommunityRegistrationBatch({
+    boardId,
+    batchNumber: nextBatchNumber,
+    channelId: interaction.channelId,
+    messageId: message.id
+  });
+
+  return {
+    batchNumber: nextBatchNumber,
+    messageId: message.id
+  };
+}
+
 async function enableAuxButtonsFromError(errorMessage, interaction) {
   const nextSettings = {};
 
@@ -111,6 +249,153 @@ async function enableAuxButtonsFromError(errorMessage, interaction) {
 }
 
 export async function handleButtonInteraction(interaction) {
+  const communityButton = parseCommunityButton(interaction.customId);
+
+  if (communityButton) {
+    const board = await getCommunityRegistrationBoard(communityButton.boardId);
+
+    if (!board) {
+      await interaction.reply({
+        content: "Ese registro ya no existe.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (
+      communityButton.prefix === BUTTON_IDS.communityClosePrefix &&
+      !isSystem32Member(interaction.member)
+    ) {
+      await interaction.reply({
+        content: "Solo system32 puede cerrar este registro.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (board.isClosed) {
+      await interaction.reply({
+        content: "Este registro ya fue cerrado.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (communityButton.prefix === BUTTON_IDS.communityRegisterPrefix) {
+      const existingEntry = await getCommunityRegistrationEntry(
+        communityButton.boardId,
+        interaction.user.id
+      );
+
+      if (existingEntry) {
+        await interaction.reply({
+          content: "Ya estas registrado en esta lista. Usa los botones de roles para actualizar tus preferencias.",
+          ephemeral: true
+        });
+        return;
+      }
+
+      let openBatch = await getFirstOpenBatch(communityButton.boardId);
+
+      if (!openBatch) {
+        openBatch = await createNextCommunityBatchMessage(interaction, communityButton.boardId);
+      }
+
+      const member = await interaction.guild.members.fetch(interaction.user.id);
+
+      await createCommunityRegistrationEntry({
+        boardId: communityButton.boardId,
+        batchNumber: openBatch.batchNumber,
+        userId: interaction.user.id,
+        username: member.displayName || interaction.user.username
+      });
+
+      await refreshCommunityBoardMessages(interaction, communityButton.boardId);
+      await interaction.reply({
+        content: `Quedaste registrado en el bloque #${openBatch.batchNumber}.`,
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (communityButton.prefix === BUTTON_IDS.communityCancelPrefix) {
+      const existingEntry = await getCommunityRegistrationEntry(
+        communityButton.boardId,
+        interaction.user.id
+      );
+
+      if (!existingEntry) {
+        await interaction.reply({
+          content: "No estabas registrado en esta lista.",
+          ephemeral: true
+        });
+        return;
+      }
+
+      const member = await interaction.guild.members.fetch(interaction.user.id).catch(() => null);
+
+      if (member) {
+        await removeAllCommunityRoles(member).catch(() => null);
+      }
+
+      await deleteCommunityRegistrationEntry(communityButton.boardId, interaction.user.id);
+      await refreshCommunityBoardMessages(interaction, communityButton.boardId);
+      await interaction.reply({
+        content: "Tu registro fue cancelado y se quitaron tus roles seleccionados.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    if (communityButton.prefix === BUTTON_IDS.communityClosePrefix) {
+      await closeCommunityRegistrationBoard(communityButton.boardId);
+      await refreshCommunityBoardMessages(interaction, communityButton.boardId);
+      await interaction.reply({
+        content: "El registro fue cerrado.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    const roleKey = getCommunityRoleKeyByPrefix(communityButton.prefix);
+    const roleConfig = COMMUNITY_REGISTRATION_ROLE_ORDER.find((role) => role.key === roleKey);
+    const existingEntry = await getCommunityRegistrationEntry(
+      communityButton.boardId,
+      interaction.user.id
+    );
+
+    if (!existingEntry) {
+      await interaction.reply({
+        content: "Primero debes registrarte para poder seleccionar roles.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    const member = await interaction.guild.members.fetch(interaction.user.id);
+
+    try {
+      await assignCommunityRole(member, roleKey);
+    } catch (error) {
+      await interaction.reply({
+        content: error.message,
+        ephemeral: true
+      });
+      return;
+    }
+
+    await updateCommunityRegistrationEntry(existingEntry.id, {
+      [roleKey]: true,
+      username: member.displayName || interaction.user.username
+    });
+    await refreshCommunityBoardMessages(interaction, communityButton.boardId);
+    await interaction.reply({
+      content: `Se te asigno el rol \`${roleConfig.label}\` y se actualizo tu registro.`,
+      ephemeral: true
+    });
+    return;
+  }
+
   if (interaction.customId === BUTTON_IDS.register) {
     const member = await interaction.guild.members.fetch(interaction.user.id);
     const panelMode = getPanelModeFromMessage(interaction);

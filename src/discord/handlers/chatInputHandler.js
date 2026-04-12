@@ -1,4 +1,9 @@
 import { COMMANDS } from "../../constants/commands.js";
+import {
+  createCommunityRegistrationBatch,
+  createCommunityRegistrationBoard,
+  getOpenCommunityRegistrationBoard
+} from "../../data/communityRegistrationStore.js";
 import { importBackupPlayers } from "../../database/importBackupPlayers.js";
 import { seedFakePlayers } from "../../database/ensureSeedData.js";
 import {
@@ -19,6 +24,7 @@ import {
 } from "../../data/playerStore.js";
 import { createScrimFight } from "../../services/scrimService.js";
 import { buildMatchPreviewEmbed } from "../../ui/matchEmbeds.js";
+import { buildCommunityRegistrationPanel } from "../../ui/communityRegistrationPanel.js";
 import { buildRankingEmbed } from "../../ui/rankingEmbed.js";
 import { buildRegisterPanel } from "../../ui/registerPanel.js";
 import { buildResultButtons } from "../../ui/resultButtons.js";
@@ -68,6 +74,52 @@ function getFakeScrimPreset(interaction) {
 }
 
 export async function handleChatInputCommand(interaction) {
+  if (interaction.commandName === COMMANDS.registrarse) {
+    if (!(await assertSystem32(interaction))) {
+      return;
+    }
+
+    const existingBoard = await getOpenCommunityRegistrationBoard(
+      interaction.guildId,
+      interaction.channelId
+    );
+
+    if (existingBoard) {
+      await interaction.reply({
+        content: "Ya hay un registro abierto en este canal. Cierralo antes de crear otro.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    const board = await createCommunityRegistrationBoard({
+      guildId: interaction.guildId,
+      channelId: interaction.channelId,
+      createdByUserId: interaction.user.id
+    });
+    const panel = buildCommunityRegistrationPanel({
+      boardId: board.id,
+      batchNumber: 1,
+      isClosed: false,
+      entries: []
+    });
+
+    await interaction.reply({
+      content: "Panel de registro publicado.",
+      ephemeral: true
+    });
+
+    const message = await interaction.channel.send(panel);
+
+    await createCommunityRegistrationBatch({
+      boardId: board.id,
+      batchNumber: 1,
+      channelId: interaction.channelId,
+      messageId: message.id
+    });
+    return;
+  }
+
   if (interaction.commandName === COMMANDS.start) {
     if (!(await assertSystem32(interaction))) {
       return;

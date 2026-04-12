@@ -1,4 +1,5 @@
 export const COMMANDS = {
+  registrarse: "registrarse",
   start: "start",
   secret: "secret",
   scrim: "scrim",

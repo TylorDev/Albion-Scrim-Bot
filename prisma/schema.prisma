@@ -112,3 +112,45 @@ model ManualRegistration {
   @@id([userId, role])
   @@index([role])
 }
+
+model CommunityRegistrationBoard {
+  id              Int                          @id @default(autoincrement())
+  guildId         String
+  channelId       String
+  createdByUserId String
+  isClosed        Boolean                      @default(false)
+  createdAt       DateTime                     @default(now())
+  closedAt        DateTime?
+  batches         CommunityRegistrationBatch[]
+  entries         CommunityRegistrationEntry[]
+}
+
+model CommunityRegistrationBatch {
+  id          Int                        @id @default(autoincrement())
+  boardId     Int
+  batchNumber Int
+  channelId   String
+  messageId   String                     @unique
+  createdAt   DateTime                   @default(now())
+  board       CommunityRegistrationBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, batchNumber])
+}
+
+model CommunityRegistrationEntry {
+  id            Int                        @id @default(autoincrement())
+  boardId       Int
+  batchNumber   Int
+  userId        String
+  username      String
+  arena         Boolean                    @default(false)
+  scrim         Boolean                    @default(false)
+  crystalLeague Boolean                    @default(false)
+  crystal20v20  Boolean                    @default(false)
+  registeredAt  DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  board         CommunityRegistrationBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+
+  @@unique([boardId, userId])
+  @@index([boardId, batchNumber])
+}
