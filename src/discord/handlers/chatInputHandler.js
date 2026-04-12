@@ -101,7 +101,8 @@ export async function handleChatInputCommand(interaction) {
       boardId: board.id,
       batchNumber: 1,
       isClosed: false,
-      entries: []
+      entries: [],
+      guild: interaction.guild
     });
 
     await interaction.reply({

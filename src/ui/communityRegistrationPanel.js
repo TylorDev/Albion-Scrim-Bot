@@ -6,7 +6,6 @@ import {
 } from "discord.js";
 import { BUTTON_IDS } from "../constants/customIds.js";
 import {
-  COMMUNITY_REGISTRATION_BATCH_CAPACITY,
   COMMUNITY_REGISTRATION_ROLE_ORDER
 } from "../constants/communityRegistrationRoles.js";
 
@@ -14,15 +13,27 @@ function buildButtonId(prefix, boardId) {
   return `${prefix}:${boardId}`;
 }
 
-function formatSelectedRoles(entry) {
+function getRoleMentionOrFallback(guild, roleName) {
+  if (!guild) {
+    return `@${roleName}`;
+  }
+
+  const role = guild.roles.cache.find(
+    (item) => item.name.trim().toLowerCase() === roleName.trim().toLowerCase()
+  );
+
+  return role ? `<@&${role.id}>` : `@${roleName}`;
+}
+
+function formatSelectedRoles(entry, guild) {
   const selectedRoles = COMMUNITY_REGISTRATION_ROLE_ORDER
     .filter((role) => entry[role.key] === true)
-    .map((role) => role.label);
+    .map((role) => getRoleMentionOrFallback(guild, role.discordRoleName));
 
   return selectedRoles.length > 0 ? selectedRoles.join(", ") : "Sin roles";
 }
 
-function buildEntriesList(entries) {
+function buildEntriesList(entries, guild) {
   if (entries.length === 0) {
     return "Nadie se ha registrado todavia.";
   }
@@ -30,7 +41,7 @@ function buildEntriesList(entries) {
   return entries
     .map(
       (entry, index) =>
-        `${index + 1}. <@${entry.userId}> - ${formatSelectedRoles(entry)}`
+        `${index + 1}. <@${entry.userId}> - ${formatSelectedRoles(entry, guild)}`
     )
     .join("\n")
     .slice(0, 4096);
@@ -84,7 +95,8 @@ export function buildCommunityRegistrationPanel({
   boardId,
   batchNumber,
   isClosed,
-  entries
+  entries,
+  guild = null
 }) {
   const title = isClosed
     ? `Registro Cerrado #${batchNumber}`
@@ -99,8 +111,8 @@ export function buildCommunityRegistrationPanel({
         .setTitle(title)
         .setDescription(description)
         .addFields({
-          name: `Registrados (${entries.length}/${COMMUNITY_REGISTRATION_BATCH_CAPACITY})`,
-          value: buildEntriesList(entries)
+          name: `Registrados (${entries.length})`,
+          value: buildEntriesList(entries, guild)
         })
         .setColor(isClosed ? 0x868e96 : 0x1c7ed6)
     ],

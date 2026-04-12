@@ -158,7 +158,8 @@ async function buildCommunityBoardMessage(interaction, boardId, batchNumber) {
     boardId,
     batchNumber,
     isClosed: board.isClosed,
-    entries
+    entries,
+    guild: interaction.guild
   });
 }
 
@@ -192,7 +193,8 @@ async function refreshCommunityBoardMessages(interaction, boardId) {
         boardId,
         batchNumber: batch.batchNumber,
         isClosed: board.isClosed,
-        entries
+        entries,
+        guild: interaction.guild
       })
     );
   }
@@ -206,7 +208,8 @@ async function createNextCommunityBatchMessage(interaction, boardId) {
     boardId,
     batchNumber: nextBatchNumber,
     isClosed: false,
-    entries: []
+    entries: [],
+    guild: interaction.guild
   });
   const message = await interaction.channel.send(panel);
 
