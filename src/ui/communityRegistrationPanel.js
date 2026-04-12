@@ -33,18 +33,48 @@ function formatSelectedRoles(entry, guild) {
   return selectedRoles.length > 0 ? selectedRoles.join(", ") : "Sin roles";
 }
 
-function buildEntriesList(entries, guild) {
+function buildEntryLines(entries, guild) {
   if (entries.length === 0) {
-    return "Nadie se ha registrado todavia.";
+    return ["Nadie se ha registrado todavia."];
   }
 
   return entries
     .map(
       (entry, index) =>
         `${index + 1}. <@${entry.userId}> - ${formatSelectedRoles(entry, guild)}`
-    )
-    .join("\n")
-    .slice(0, 4096);
+    );
+}
+
+function buildEntryFields(entries, guild, totalEntries) {
+  const lines = buildEntryLines(entries, guild);
+  const fields = [];
+  let currentLines = [];
+  let currentLength = 0;
+
+  for (const line of lines) {
+    const nextLength = currentLength === 0
+      ? line.length
+      : currentLength + 1 + line.length;
+
+    if (nextLength > 1024 && currentLines.length > 0) {
+      fields.push(currentLines.join("\n"));
+      currentLines = [line];
+      currentLength = line.length;
+      continue;
+    }
+
+    currentLines.push(line);
+    currentLength = nextLength;
+  }
+
+  if (currentLines.length > 0) {
+    fields.push(currentLines.join("\n"));
+  }
+
+  return fields.map((value, index) => ({
+    name: index === 0 ? `Registrados (${totalEntries})` : `Registrados (${totalEntries}) cont.`,
+    value
+  }));
 }
 
 export function chunkCommunityRegistrationEntries(entries, chunkSize = 30) {
@@ -120,10 +150,7 @@ export function buildCommunityRegistrationPanel({
       new EmbedBuilder()
         .setTitle(title)
         .setDescription(description)
-        .addFields({
-          name: `Registrados (${entries.length})`,
-          value: buildEntriesList(entries, guild)
-        })
+        .addFields(buildEntryFields(entries, guild, entries.length))
         .setColor(isClosed ? 0x868e96 : 0x1c7ed6)
     ],
     components: buildComponents(boardId, isClosed)
@@ -142,10 +169,7 @@ export function buildCommunityRegisteredPage({
       new EmbedBuilder()
         .setTitle(`Registrados ${pageNumber}/${totalPages}`)
         .setDescription("Listado global de usuarios registrados en la base de datos.")
-        .addFields({
-          name: `Registrados (${totalEntries})`,
-          value: buildEntriesList(entries, guild)
-        })
+        .addFields(buildEntryFields(entries, guild, totalEntries))
         .setColor(0x1c7ed6)
     ]
   };
