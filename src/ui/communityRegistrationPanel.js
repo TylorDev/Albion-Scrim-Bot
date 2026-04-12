@@ -47,6 +47,16 @@ function buildEntriesList(entries, guild) {
     .slice(0, 4096);
 }
 
+export function chunkCommunityRegistrationEntries(entries, chunkSize = 30) {
+  const chunks = [];
+
+  for (let index = 0; index < entries.length; index += chunkSize) {
+    chunks.push(entries.slice(index, index + chunkSize));
+  }
+
+  return chunks;
+}
+
 function buildComponents(boardId, isClosed) {
   return [
     new ActionRowBuilder().addComponents(
@@ -117,5 +127,26 @@ export function buildCommunityRegistrationPanel({
         .setColor(isClosed ? 0x868e96 : 0x1c7ed6)
     ],
     components: buildComponents(boardId, isClosed)
+  };
+}
+
+export function buildCommunityRegisteredPage({
+  entries,
+  pageNumber,
+  totalPages,
+  totalEntries,
+  guild = null
+}) {
+  return {
+    embeds: [
+      new EmbedBuilder()
+        .setTitle(`Registrados ${pageNumber}/${totalPages}`)
+        .setDescription("Listado global de usuarios registrados en la base de datos.")
+        .addFields({
+          name: `Registrados (${totalEntries})`,
+          value: buildEntriesList(entries, guild)
+        })
+        .setColor(0x1c7ed6)
+    ]
   };
 }

@@ -2,6 +2,7 @@ import { COMMANDS } from "../../constants/commands.js";
 import {
   createCommunityRegistrationBatch,
   createCommunityRegistrationBoard,
+  getAllCommunityRegistrationEntries,
   getOpenCommunityRegistrationBoard
 } from "../../data/communityRegistrationStore.js";
 import { importBackupPlayers } from "../../database/importBackupPlayers.js";
@@ -24,7 +25,11 @@ import {
 } from "../../data/playerStore.js";
 import { createScrimFight } from "../../services/scrimService.js";
 import { buildMatchPreviewEmbed } from "../../ui/matchEmbeds.js";
-import { buildCommunityRegistrationPanel } from "../../ui/communityRegistrationPanel.js";
+import {
+  buildCommunityRegisteredPage,
+  buildCommunityRegistrationPanel,
+  chunkCommunityRegistrationEntries
+} from "../../ui/communityRegistrationPanel.js";
 import { buildRankingEmbed } from "../../ui/rankingEmbed.js";
 import { buildRegisterPanel } from "../../ui/registerPanel.js";
 import { buildResultButtons } from "../../ui/resultButtons.js";
@@ -118,6 +123,39 @@ export async function handleChatInputCommand(interaction) {
       channelId: interaction.channelId,
       messageId: message.id
     });
+    return;
+  }
+
+  if (interaction.commandName === COMMANDS.registrados) {
+    const entries = await getAllCommunityRegistrationEntries();
+
+    if (entries.length === 0) {
+      await interaction.reply({
+        content: "No hay usuarios registrados en la base de datos.",
+        ephemeral: true
+      });
+      return;
+    }
+
+    const entryChunks = chunkCommunityRegistrationEntries(entries);
+
+    await interaction.reply({
+      content: `Publicando ${entries.length} registrados en ${entryChunks.length} bloque(s).`,
+      ephemeral: true
+    });
+
+    for (const [index, entryChunk] of entryChunks.entries()) {
+      await interaction.channel.send(
+        buildCommunityRegisteredPage({
+          entries: entryChunk,
+          pageNumber: index + 1,
+          totalPages: entryChunks.length,
+          totalEntries: entries.length,
+          guild: interaction.guild
+        })
+      );
+    }
+
     return;
   }
 

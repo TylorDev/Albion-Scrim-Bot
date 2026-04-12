@@ -95,6 +95,15 @@ export async function getCommunityRegistrationEntryByUserId(userId) {
   });
 }
 
+export async function getAllCommunityRegistrationEntries() {
+  return prisma.communityRegistrationEntry.findMany({
+    orderBy: [
+      { registeredAt: "asc" },
+      { id: "asc" }
+    ]
+  });
+}
+
 export async function getBatchEntries(boardId, batchNumber) {
   return prisma.communityRegistrationEntry.findMany({
     where: {

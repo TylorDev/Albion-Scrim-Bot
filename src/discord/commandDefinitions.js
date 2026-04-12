@@ -10,6 +10,9 @@ export const commandDefinitions = [
     .setName(COMMANDS.registrarse)
     .setDescription("Crea un panel de registro general con cupos de 30 personas."),
   new SlashCommandBuilder()
+    .setName(COMMANDS.registrados)
+    .setDescription("Muestra todos los registrados guardados en la base de datos."),
+  new SlashCommandBuilder()
     .setName(COMMANDS.start)
     .setDescription("Importa los jugadores desde backup.txt a la base de datos."),
   new SlashCommandBuilder()
